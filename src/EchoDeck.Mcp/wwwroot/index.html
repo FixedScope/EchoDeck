@@ -489,13 +489,16 @@
       log('Starting job...');
       showProgressCard();
 
-      const result = await callMcpTool('generate_video', {
-        pptx_base64: b64,
-        voice_id: voiceId || undefined,
-        resolution,
-        transition,
+      const genResp = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pptx_base64: b64, voice_id: voiceId || undefined, resolution, transition }),
       });
-
+      if (!genResp.ok) {
+        const err = await genResp.json().catch(() => ({ error: 'HTTP ' + genResp.status }));
+        throw new Error(err.error || 'HTTP ' + genResp.status);
+      }
+      const result = await genResp.json();
       if (result.error) throw new Error(result.error);
 
       currentJobId = result.job_id;
@@ -535,7 +538,9 @@
   function startPolling(jobId) {
     pollInterval = setInterval(async () => {
       try {
-        const result = await callMcpTool('get_job_status', { job_id: jobId });
+        const pollResp = await fetch('/api/job/' + jobId);
+        if (!pollResp.ok) throw new Error('HTTP ' + pollResp.status);
+        const result = await pollResp.json();
         log('Poll: status=' + result.status + ' progress=' + result.progress);
 
         updateProgressUI(result);
