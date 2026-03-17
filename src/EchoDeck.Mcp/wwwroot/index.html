@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EchoDeck — PowerPoint to Narrated Video</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #252836;
+    --border: #2e3147;
+    --accent: #6c63ff;
+    --accent2: #5a52d5;
+    --text: #e8e9f0;
+    --text-muted: #8b8fa8;
+    --success: #2ecc71;
+    --warning: #f39c12;
+    --error: #e74c3c;
+    --running: #3498db;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem;
+  }
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.25rem;
+  }
+  .subtitle {
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+  }
+  .container {
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+  .card h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+  }
+  /* Drop zone */
+  #dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 3rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface2);
+  }
+  #dropzone:hover, #dropzone.drag-over {
+    border-color: var(--accent);
+    background: rgba(108, 99, 255, 0.08);
+  }
+  #dropzone .icon {
+    font-size: 3rem;
+    margin-bottom: 0.75rem;
+    display: block;
+  }
+  #dropzone .hint {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+  }
+  #file-name {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  #file-input { display: none; }
+
+  /* Controls */
+  .controls-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    flex: 1;
+    min-width: 160px;
+  }
+  label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  select, input[type="text"] {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  select:focus, input:focus {
+    border-color: var(--accent);
+  }
+  button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    white-space: nowrap;
+  }
+  button:hover:not(:disabled) {
+    background: var(--accent2);
+  }
+  button:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  button.secondary {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  button.secondary:hover:not(:disabled) {
+    background: var(--border);
+  }
+
+  /* Steps */
+  .steps {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  .step {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.75rem;
+    background: var(--surface2);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 0.8rem;
+    text-align: center;
+    transition: all 0.3s;
+  }
+  .step .step-icon { font-size: 1.5rem; }
+  .step .step-label { color: var(--text-muted); font-weight: 500; }
+  .step .step-detail { color: var(--text-muted); font-size: 0.72rem; min-height: 1em; }
+  .step.running { border-color: var(--running); background: rgba(52, 152, 219, 0.1); }
+  .step.completed { border-color: var(--success); background: rgba(46, 204, 113, 0.08); }
+  .step.failed { border-color: var(--error); background: rgba(231, 76, 60, 0.1); }
+  .step.running .step-label { color: var(--running); }
+  .step.completed .step-label { color: var(--success); }
+  .step.failed .step-label { color: var(--error); }
+
+  /* Progress bar */
+  .progress-bar-wrap {
+    background: var(--surface2);
+    border-radius: 999px;
+    height: 8px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #a78bfa);
+    border-radius: 999px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+  .progress-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-align: right;
+  }
+
+  /* Thumbnail grid */
+  .thumb-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.75rem;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+  .thumb-item {
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    aspect-ratio: 16/9;
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+  .thumb-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Video player */
+  #video-section { display: none; }
+  #video-section video {
+    width: 100%;
+    border-radius: 8px;
+    background: #000;
+  }
+  .video-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+
+  /* Warnings */
+  .warnings {
+    background: rgba(243, 156, 18, 0.1);
+    border: 1px solid rgba(243, 156, 18, 0.3);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    color: var(--warning);
+  }
+  .warnings ul { padding-left: 1.2rem; }
+
+  /* Error banner */
+  .error-banner {
+    background: rgba(231, 76, 60, 0.1);
+    border: 1px solid rgba(231, 76, 60, 0.3);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    color: var(--error);
+    display: none;
+  }
+
+  /* Debug log */
+  .debug-toggle {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+  }
+  #debug-log {
+    display: none;
+    margin-top: 0.75rem;
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 0.75rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  @media (max-width: 600px) {
+    .steps { flex-direction: column; }
+    .controls-row { flex-direction: column; }
+    h1 { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+<h1>EchoDeck</h1>
+<p class="subtitle">Convert PowerPoint presentations into narrated MP4 videos</p>
+
+<div class="container">
+
+  <!-- Upload Card -->
+  <div class="card">
+    <h2>Upload Presentation</h2>
+    <div id="dropzone">
+      <span class="icon">📊</span>
+      <div>Drag &amp; drop your <strong>.pptx</strong> file here</div>
+      <div class="hint">or click to browse</div>
+      <div id="file-name"></div>
+    </div>
+    <input type="file" id="file-input" accept=".pptx" />
+
+    <div class="controls-row" style="margin-top: 1rem;">
+      <div class="form-group">
+        <label for="voice-select">Voice</label>
+        <select id="voice-select">
+          <option value="">Loading voices...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="resolution-select">Resolution</label>
+        <select id="resolution-select">
+          <option value="1920x1080">1920×1080 (Full HD)</option>
+          <option value="1280x720">1280×720 (HD)</option>
+          <option value="3840x2160">3840×2160 (4K)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="transition-select">Transition</label>
+        <select id="transition-select">
+          <option value="none">None</option>
+          <option value="crossfade">Crossfade</option>
+        </select>
+      </div>
+      <button id="generate-btn" disabled>Generate Video</button>
+    </div>
+  </div>
+
+  <!-- Progress Card -->
+  <div class="card" id="progress-card" style="display:none;">
+    <h2>Progress</h2>
+
+    <div class="steps" id="steps-container">
+      <div class="step" id="step-extract_slides">
+        <span class="step-icon">📑</span>
+        <span class="step-label">Extract Slides</span>
+        <span class="step-detail" id="detail-extract_slides"></span>
+      </div>
+      <div class="step" id="step-render_slides">
+        <span class="step-icon">🖼️</span>
+        <span class="step-label">Render Slides</span>
+        <span class="step-detail" id="detail-render_slides"></span>
+      </div>
+      <div class="step" id="step-generate_audio">
+        <span class="step-icon">🎙️</span>
+        <span class="step-label">Generate Audio</span>
+        <span class="step-detail" id="detail-generate_audio"></span>
+      </div>
+      <div class="step" id="step-assemble_video">
+        <span class="step-icon">🎬</span>
+        <span class="step-label">Assemble Video</span>
+        <span class="step-detail" id="detail-assemble_video"></span>
+      </div>
+    </div>
+
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-fill"></div>
+    </div>
+    <div class="progress-label" id="progress-label">0%</div>
+
+    <div id="warnings-box" class="warnings" style="display:none; margin-top: 1rem;">
+      <strong>Warnings:</strong>
+      <ul id="warnings-list"></ul>
+    </div>
+
+    <div class="error-banner" id="error-banner"></div>
+
+    <!-- Thumbnails -->
+    <div id="thumbs-section" style="margin-top: 1rem; display:none;">
+      <h2 style="margin-bottom: 0.75rem;">Slide Previews</h2>
+      <div class="thumb-grid" id="thumb-grid"></div>
+    </div>
+  </div>
+
+  <!-- Video Output Card -->
+  <div class="card" id="video-section">
+    <h2>Video Ready</h2>
+    <video id="video-player" controls></video>
+    <div class="video-actions">
+      <a id="download-link" href="#" download="echodeck-output.mp4">
+        <button>⬇️ Download MP4</button>
+      </a>
+      <button class="secondary" onclick="resetUI()">Generate Another</button>
+    </div>
+  </div>
+
+  <!-- Debug Log -->
+  <div class="card">
+    <button class="debug-toggle" onclick="toggleDebug()">Debug Log ▼</button>
+    <div id="debug-log"></div>
+  </div>
+
+</div>
+
+<script>
+  let selectedFile = null;
+  let currentJobId = null;
+  let signalRConnection = null;
+  let pollInterval = null;
+
+  // ---- File drop zone ----
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('file-input');
+  const fileNameEl = document.getElementById('file-name');
+  const generateBtn = document.getElementById('generate-btn');
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f && f.name.endsWith('.pptx')) setFile(f);
+    else log('Please drop a .pptx file');
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) setFile(fileInput.files[0]);
+  });
+
+  function setFile(f) {
+    selectedFile = f;
+    fileNameEl.textContent = f.name + ' (' + (f.size / 1024).toFixed(1) + ' KB)';
+    generateBtn.disabled = false;
+    log('File selected: ' + f.name);
+  }
+
+  // ---- Load voices ----
+  async function loadVoices() {
+    try {
+      const resp = await callMcpTool('list_voices', {});
+      const voices = resp.voices || [];
+      const sel = document.getElementById('voice-select');
+      sel.innerHTML = '';
+      if (voices.length === 0) {
+        sel.innerHTML = '<option value="">No voices configured</option>';
+      } else {
+        voices.forEach(v => {
+          const opt = document.createElement('option');
+          opt.value = v.id;
+          opt.textContent = v.name;
+          sel.appendChild(opt);
+        });
+      }
+      log('Loaded ' + voices.length + ' voice(s)');
+    } catch (e) {
+      log('Failed to load voices: ' + e.message);
+      document.getElementById('voice-select').innerHTML = '<option value="">Error loading voices</option>';
+    }
+  }
+
+  // ---- Generate ----
+  generateBtn.addEventListener('click', async () => {
+    if (!selectedFile) return;
+    generateBtn.disabled = true;
+
+    try {
+      const b64 = await fileToBase64(selectedFile);
+      const voiceId = document.getElementById('voice-select').value;
+      const resolution = document.getElementById('resolution-select').value;
+      const transition = document.getElementById('transition-select').value;
+
+      log('Starting job...');
+      showProgressCard();
+
+      const result = await callMcpTool('generate_video', {
+        pptx_base64: b64,
+        voice_id: voiceId || undefined,
+        resolution,
+        transition,
+      });
+
+      if (result.error) throw new Error(result.error);
+
+      currentJobId = result.job_id;
+      log('Job started: ' + currentJobId);
+
+      await startSignalR(currentJobId);
+      startPolling(currentJobId);
+
+    } catch (e) {
+      showError(e.message);
+      generateBtn.disabled = false;
+      log('Error: ' + e.message);
+    }
+  });
+
+  // ---- SignalR ----
+  async function startSignalR(jobId) {
+    try {
+      signalRConnection = new signalR.HubConnectionBuilder()
+        .withUrl('/hubs/progress')
+        .withAutomaticReconnect()
+        .build();
+
+      signalRConnection.on('progress', (evt) => {
+        log('SignalR: ' + JSON.stringify(evt));
+        handleProgressEvent(evt);
+      });
+
+      await signalRConnection.start();
+      await signalRConnection.invoke('JoinJob', jobId);
+      log('SignalR connected for job ' + jobId);
+    } catch (e) {
+      log('SignalR failed, falling back to polling: ' + e.message);
+    }
+  }
+
+  function startPolling(jobId) {
+    pollInterval = setInterval(async () => {
+      try {
+        const result = await callMcpTool('get_job_status', { job_id: jobId });
+        log('Poll: status=' + result.status + ' progress=' + result.progress);
+
+        updateProgressUI(result);
+
+        if (result.status === 'completed' || result.status === 'failed') {
+          clearInterval(pollInterval);
+          if (signalRConnection) {
+            signalRConnection.invoke('LeaveJob', jobId).catch(() => {});
+            signalRConnection.stop();
+          }
+        }
+      } catch (e) {
+        log('Poll error: ' + e.message);
+      }
+    }, 2000);
+  }
+
+  function handleProgressEvent(evt) {
+    updateStepUI(evt.stepName, evt.stepStatus, evt.detail);
+    if (evt.progress !== undefined) updateProgressBar(evt.progress);
+
+    if (evt.thumbnailBase64) {
+      addThumbnail(evt.thumbnailBase64);
+    }
+  }
+
+  function updateProgressUI(status) {
+    updateProgressBar(status.progress || 0);
+
+    if (status.steps) {
+      status.steps.forEach(s => updateStepUI(s.name, s.status, s.detail));
+    }
+
+    if (status.warnings && status.warnings.length > 0) {
+      showWarnings(status.warnings);
+    }
+
+    if (status.status === 'completed' && status.output_url) {
+      showVideo(status.output_url);
+    } else if (status.status === 'failed') {
+      showError(status.error || 'Job failed');
+    }
+  }
+
+  function updateStepUI(stepName, stepStatus, detail) {
+    const stepEl = document.getElementById('step-' + stepName);
+    const detailEl = document.getElementById('detail-' + stepName);
+    if (!stepEl) return;
+    stepEl.className = 'step ' + stepStatus;
+    if (detailEl && detail) detailEl.textContent = detail;
+
+    const icons = {
+      pending: { extract_slides: '📑', render_slides: '🖼️', generate_audio: '🎙️', assemble_video: '🎬' },
+      running: { extract_slides: '⏳', render_slides: '⏳', generate_audio: '⏳', assemble_video: '⏳' },
+      completed: { extract_slides: '✅', render_slides: '✅', generate_audio: '✅', assemble_video: '✅' },
+      failed: { extract_slides: '❌', render_slides: '❌', generate_audio: '❌', assemble_video: '❌' },
+    };
+    const iconEl = stepEl.querySelector('.step-icon');
+    if (iconEl && icons[stepStatus]) iconEl.textContent = icons[stepStatus][stepName] || iconEl.textContent;
+  }
+
+  function updateProgressBar(pct) {
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-label').textContent = pct + '%';
+  }
+
+  function addThumbnail(base64) {
+    const grid = document.getElementById('thumb-grid');
+    document.getElementById('thumbs-section').style.display = '';
+    const item = document.createElement('div');
+    item.className = 'thumb-item';
+    const img = document.createElement('img');
+    img.src = 'data:image/png;base64,' + base64;
+    img.alt = 'Slide preview';
+    item.appendChild(img);
+    grid.appendChild(item);
+  }
+
+  function showWarnings(warnings) {
+    const box = document.getElementById('warnings-box');
+    const list = document.getElementById('warnings-list');
+    list.innerHTML = '';
+    warnings.forEach(w => {
+      const li = document.createElement('li');
+      li.textContent = w;
+      list.appendChild(li);
+    });
+    box.style.display = '';
+  }
+
+  function showError(msg) {
+    const banner = document.getElementById('error-banner');
+    banner.textContent = 'Error: ' + msg;
+    banner.style.display = '';
+    generateBtn.disabled = false;
+  }
+
+  function showVideo(url) {
+    const section = document.getElementById('video-section');
+    section.style.display = '';
+    const player = document.getElementById('video-player');
+    player.src = url;
+    const dl = document.getElementById('download-link');
+    dl.href = url;
+    updateProgressBar(100);
+    log('Video ready: ' + url);
+  }
+
+  function showProgressCard() {
+    document.getElementById('progress-card').style.display = '';
+    document.getElementById('error-banner').style.display = 'none';
+    document.getElementById('video-section').style.display = 'none';
+    document.getElementById('thumb-grid').innerHTML = '';
+    document.getElementById('thumbs-section').style.display = 'none';
+    document.getElementById('warnings-box').style.display = 'none';
+    updateProgressBar(0);
+    ['extract_slides', 'render_slides', 'generate_audio', 'assemble_video'].forEach(s => {
+      updateStepUI(s, 'pending', '');
+    });
+  }
+
+  function resetUI() {
+    selectedFile = null;
+    currentJobId = null;
+    fileNameEl.textContent = '';
+    fileInput.value = '';
+    generateBtn.disabled = true;
+    document.getElementById('progress-card').style.display = 'none';
+    document.getElementById('video-section').style.display = 'none';
+    if (pollInterval) clearInterval(pollInterval);
+    if (signalRConnection) signalRConnection.stop();
+  }
+
+  // ---- MCP helper ----
+  async function callMcpTool(toolName, params) {
+    const body = {
+      jsonrpc: '2.0',
+      id: Date.now(),
+      method: 'tools/call',
+      params: {
+        name: toolName,
+        arguments: params,
+      },
+    };
+
+    const resp = await fetch('/mcp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const json = await resp.json();
+
+    if (json.error) throw new Error(json.error.message || JSON.stringify(json.error));
+
+    // MCP returns content as text
+    const content = json.result?.content;
+    if (Array.isArray(content) && content[0]?.type === 'text') {
+      try {
+        return JSON.parse(content[0].text);
+      } catch {
+        return content[0].text;
+      }
+    }
+    return json.result;
+  }
+
+  // ---- Utilities ----
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function log(msg) {
+    const el = document.getElementById('debug-log');
+    const ts = new Date().toLocaleTimeString();
+    el.textContent += '[' + ts + '] ' + msg + '\n';
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function toggleDebug() {
+    const el = document.getElementById('debug-log');
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  }
+
+  // ---- Init ----
+  loadVoices();
+</script>
+</body>
+</html>

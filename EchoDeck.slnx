@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/EchoDeck.Core/EchoDeck.Core.csproj" />
+    <Project Path="src/EchoDeck.Mcp/EchoDeck.Mcp.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/EchoDeck.Core.Tests/EchoDeck.Core.Tests.csproj" />
+  </Folder>
+</Solution>

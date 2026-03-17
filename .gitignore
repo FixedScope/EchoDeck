@@ -1,0 +1,12 @@
+bin/
+obj/
+*.user
+.vs/
+data/
+*.mp4
+*.mp3
+*.png
+!tests/fixtures/*.pptx
+oo-screenshot/
+tools/OoInspect/
+.env
