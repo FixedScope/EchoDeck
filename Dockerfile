@@ -1,7 +1,7 @@
 # Build stage
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-COPY EchoDeck.sln .
+COPY EchoDeck.slnx .
 COPY src/EchoDeck.Core/EchoDeck.Core.csproj src/EchoDeck.Core/
 COPY src/EchoDeck.Mcp/EchoDeck.Mcp.csproj src/EchoDeck.Mcp/
 RUN dotnet restore
