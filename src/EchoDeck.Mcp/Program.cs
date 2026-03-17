@@ -91,6 +91,13 @@ app.MapGet("/temp/{jobId}/{fileName}", (string jobId, string fileName, TempFileS
     return Results.File(filePath, "application/vnd.openxmlformats-officedocument.presentationml.presentation");
 });
 
+// Simple REST endpoint for the web UI to load voices without MCP handshake
+app.MapGet("/api/voices", (EchoDeckOptions opts) =>
+{
+    var voices = opts.ParseVoices().Select(v => new { id = v.Id, name = v.Name });
+    return Results.Ok(new { voices });
+});
+
 // Health check
 app.MapGet("/health", async (FFmpegService ffmpeg, ISlideRenderer renderer) =>
 {

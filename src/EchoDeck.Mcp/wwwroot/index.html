@@ -452,8 +452,10 @@
   // ---- Load voices ----
   async function loadVoices() {
     try {
-      const resp = await callMcpTool('list_voices', {});
-      const voices = resp.voices || [];
+      const resp = await fetch('/api/voices');
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const data = await resp.json();
+      const voices = data.voices || [];
       const sel = document.getElementById('voice-select');
       sel.innerHTML = '';
       if (voices.length === 0) {
