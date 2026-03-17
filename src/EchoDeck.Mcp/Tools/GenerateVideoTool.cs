@@ -11,9 +11,13 @@ namespace EchoDeck.Mcp.Tools;
 [McpServerToolType]
 public static class GenerateVideoTool
 {
-    [McpServerTool(Name = "generate_video"), Description("Generate a narrated MP4 video from a PowerPoint presentation. The .pptx must have speaker notes on the slides to narrate. Returns a job_id to poll with get_job_status.")]
+    [McpServerTool(Name = "generate_video"), Description(
+        "Generate a narrated MP4 video from a PowerPoint presentation. " +
+        "The .pptx must have speaker notes on the slides to narrate. " +
+        "First call get_upload_slot and upload the file via the returned curl command to get a file_id. " +
+        "Returns a job_id to poll with get_job_status.")]
     public static async Task<object> GenerateVideo(
-        [Description("Base64-encoded .pptx file content")] string pptx_base64,
+        [Description("file_id returned by the /upload/pptx endpoint after uploading the .pptx file")] string file_id,
         [Description("ElevenLabs voice ID. Use list_voices to see options. Defaults to first configured voice.")] string? voice_id,
         [Description("Video resolution: '1920x1080' (default), '1280x720', or '3840x2160'")] string? resolution,
         [Description("Transition style: 'none' (default) or 'crossfade'")] string? transition,
@@ -26,16 +30,11 @@ public static class GenerateVideoTool
     {
         var logger = loggerFactory.CreateLogger("GenerateVideoTool");
 
-        // Validate base64 input
-        byte[] pptxBytes;
-        try
-        {
-            pptxBytes = Convert.FromBase64String(pptx_base64);
-        }
-        catch
-        {
-            return new { error = "Invalid base64 encoding for pptx_base64." };
-        }
+        // Resolve uploaded file
+        var uploadDir = Path.Combine(options.DataDir, "uploads");
+        var pptxUploadPath = Path.Combine(uploadDir, file_id + ".pptx");
+        if (!File.Exists(pptxUploadPath))
+            return new { error = $"file_id '{file_id}' not found. Call get_upload_slot and upload the file first." };
 
         // Resolve voice
         var voices = options.ParseVoices();
@@ -52,9 +51,9 @@ public static class GenerateVideoTool
         var jobDir = options.GetJobDir(job.JobId);
         Directory.CreateDirectory(jobDir);
 
-        // Write pptx to disk
+        // Move uploaded file into the job directory
         var pptxPath = Path.Combine(jobDir, "input.pptx");
-        await File.WriteAllBytesAsync(pptxPath, pptxBytes);
+        File.Move(pptxUploadPath, pptxPath);
 
         // Register with temp file server (for Office Online renderer)
         tempFileServer.Register(job.JobId, pptxPath);

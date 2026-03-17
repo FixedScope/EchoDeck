@@ -112,12 +112,13 @@ app.MapPost("/api/generate", async (
 {
     var logger = loggerFactory.CreateLogger("GenerateApi");
     var body = await ctx.Request.ReadFromJsonAsync<GenerateRequest>();
-    if (body?.PptxBase64 == null)
-        return Results.BadRequest(new { error = "pptx_base64 is required." });
+    if (body?.FileId == null)
+        return Results.BadRequest(new { error = "file_id is required. Upload the .pptx to /upload/pptx first." });
 
-    byte[] pptxBytes;
-    try { pptxBytes = Convert.FromBase64String(body.PptxBase64); }
-    catch { return Results.BadRequest(new { error = "Invalid base64 encoding for pptx_base64." }); }
+    var uploadDir = Path.Combine(opts.DataDir, "uploads");
+    var pptxUploadPath = Path.Combine(uploadDir, body.FileId + ".pptx");
+    if (!File.Exists(pptxUploadPath))
+        return Results.BadRequest(new { error = $"file_id '{body.FileId}' not found." });
 
     var voices = opts.ParseVoices();
     if (voices.Count == 0)
@@ -130,7 +131,7 @@ app.MapPost("/api/generate", async (
     var jobDir = opts.GetJobDir(job.JobId);
     Directory.CreateDirectory(jobDir);
     var pptxPath = Path.Combine(jobDir, "input.pptx");
-    await File.WriteAllBytesAsync(pptxPath, pptxBytes);
+    File.Move(pptxUploadPath, pptxPath);
     tempFileServer.Register(job.JobId, pptxPath);
 
     _ = Task.Run(async () =>
@@ -181,6 +182,26 @@ app.MapGet("/api/job/{jobId}", (string jobId, JobStore jobStore, EchoDeckOptions
 
 } // end TestMode endpoints
 
+// PPTX upload endpoint — used by Claude via curl before calling generate_video
+app.MapPost("/upload/pptx", async (HttpRequest request, EchoDeckOptions opts) =>
+{
+    var form = await request.ReadFormAsync();
+    var file = form.Files["file"];
+    if (file == null || file.Length == 0)
+        return Results.BadRequest(new { error = "No file provided. Use -F \"file=@/path/to/file.pptx\"" });
+    if (!file.FileName.EndsWith(".pptx", StringComparison.OrdinalIgnoreCase))
+        return Results.BadRequest(new { error = "Only .pptx files are accepted." });
+
+    var uploadDir = Path.Combine(opts.DataDir, "uploads");
+    Directory.CreateDirectory(uploadDir);
+    var fileId = Guid.NewGuid().ToString("N");
+    var dest = Path.Combine(uploadDir, fileId + ".pptx");
+    using var stream = File.Create(dest);
+    await file.CopyToAsync(stream);
+
+    return Results.Ok(new { file_id = fileId });
+});
+
 // Health check
 app.MapGet("/health", async (FFmpegService ffmpeg, ISlideRenderer renderer) =>
 {
@@ -221,7 +242,7 @@ if (options.TestMode)
 app.Run();
 
 record GenerateRequest(
-    [property: System.Text.Json.Serialization.JsonPropertyName("pptx_base64")] string? PptxBase64,
+    [property: System.Text.Json.Serialization.JsonPropertyName("file_id")] string? FileId,
     [property: System.Text.Json.Serialization.JsonPropertyName("voice_id")] string? VoiceId,
     [property: System.Text.Json.Serialization.JsonPropertyName("resolution")] string? Resolution,
     [property: System.Text.Json.Serialization.JsonPropertyName("transition")] string? Transition

@@ -489,10 +489,22 @@
       log('Starting job...');
       showProgressCard();
 
+      // Upload the file first
+      log('Uploading file...');
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      const uploadResp = await fetch('/upload/pptx', { method: 'POST', body: formData });
+      if (!uploadResp.ok) {
+        const err = await uploadResp.json().catch(() => ({ error: 'HTTP ' + uploadResp.status }));
+        throw new Error(err.error || 'Upload failed: HTTP ' + uploadResp.status);
+      }
+      const { file_id } = await uploadResp.json();
+      log('Uploaded, file_id: ' + file_id);
+
       const genResp = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pptx_base64: b64, voice_id: voiceId || undefined, resolution, transition }),
+        body: JSON.stringify({ file_id, voice_id: voiceId || undefined, resolution, transition }),
       });
       if (!genResp.ok) {
         const err = await genResp.json().catch(() => ({ error: 'HTTP ' + genResp.status }));
