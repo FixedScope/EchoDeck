@@ -95,6 +95,24 @@ public class FFmpegService
         File.Delete(concatFile);
     }
 
+    public async Task<byte[]> ConvertPcmToMp3Async(byte[] pcmBytes, CancellationToken ct = default)
+    {
+        var tempPcm = Path.GetTempFileName() + ".pcm";
+        var tempMp3 = Path.GetTempFileName() + ".mp3";
+        try
+        {
+            await File.WriteAllBytesAsync(tempPcm, pcmBytes, ct);
+            var args = $"-f s16le -ar 24000 -ac 1 -i \"{tempPcm}\" -y \"{tempMp3}\"";
+            await RunAsync(args, ct);
+            return await File.ReadAllBytesAsync(tempMp3, ct);
+        }
+        finally
+        {
+            if (File.Exists(tempPcm)) File.Delete(tempPcm);
+            if (File.Exists(tempMp3)) File.Delete(tempMp3);
+        }
+    }
+
     public async Task NormalizeAudioAsync(string inputPath, string outputPath, CancellationToken ct = default)
     {
         var args = $"-i \"{inputPath}\" -af loudnorm=I=-16:TP=-1.5:LRA=11 -c:v copy -y \"{outputPath}\"";

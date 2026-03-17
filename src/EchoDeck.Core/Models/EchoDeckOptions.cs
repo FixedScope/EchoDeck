@@ -14,6 +14,7 @@ public class EchoDeckOptions
     public string BaseUrl { get; set; } = string.Empty;
     public string ElevenLabsApiKey { get; set; } = string.Empty;
     public string ElevenLabsVoices { get; set; } = string.Empty; // "Sam:abc123,Rachel:def456"
+    public string GeminiApiKey { get; set; } = string.Empty;
     public string McpAuthKey { get; set; } = string.Empty;
     public bool TestMode { get; set; } = false;
     public string LibreOfficePath { get; set; } = string.Empty;

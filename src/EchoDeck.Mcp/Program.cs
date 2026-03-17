@@ -20,6 +20,7 @@ options.DataDir = Environment.GetEnvironmentVariable("DATA_DIR") ?? options.Data
 options.SlideRenderer = Environment.GetEnvironmentVariable("SLIDE_RENDERER") ?? options.SlideRenderer;
 options.JobRetentionHours = int.TryParse(Environment.GetEnvironmentVariable("JOB_RETENTION_HOURS"), out var jrh) ? jrh : options.JobRetentionHours;
 options.LibreOfficePath = Environment.GetEnvironmentVariable("LIBREOFFICE_PATH") ?? options.LibreOfficePath;
+options.GeminiApiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY") ?? options.GeminiApiKey;
 
 var railwayDomain = Environment.GetEnvironmentVariable("RAILWAY_PUBLIC_DOMAIN");
 if (!string.IsNullOrEmpty(railwayDomain))
@@ -36,13 +37,42 @@ builder.Services.AddSingleton<FFmpegService>();
 builder.Services.AddSingleton<VideoAssembler>();
 builder.Services.AddSingleton<AudioGenerator>();
 
-// ElevenLabs HTTP client
-builder.Services.AddHttpClient<ElevenLabsClient>(client =>
+// Startup validation — at least one TTS provider must be configured
+if (string.IsNullOrEmpty(options.ElevenLabsApiKey) && string.IsNullOrEmpty(options.GeminiApiKey))
+    throw new InvalidOperationException("At least one TTS provider must be configured. Set ELEVENLABS_API_KEY or GEMINI_API_KEY.");
+
+// ElevenLabs HTTP client (optional)
+if (!string.IsNullOrEmpty(options.ElevenLabsApiKey))
 {
-    client.BaseAddress = new Uri("https://api.elevenlabs.io/");
-    client.DefaultRequestHeaders.Add("xi-api-key", options.ElevenLabsApiKey);
-    client.Timeout = TimeSpan.FromSeconds(120);
-});
+    builder.Services.AddHttpClient<ElevenLabsClient>(client =>
+    {
+        client.BaseAddress = new Uri("https://api.elevenlabs.io/");
+        client.DefaultRequestHeaders.Add("xi-api-key", options.ElevenLabsApiKey);
+        client.Timeout = TimeSpan.FromSeconds(120);
+    });
+}
+else
+{
+    builder.Services.AddSingleton<ElevenLabsClient>(_ => null!);
+}
+
+// Gemini TTS HTTP client (optional)
+if (!string.IsNullOrEmpty(options.GeminiApiKey))
+{
+    builder.Services.AddHttpClient<GeminiTtsClient>(client =>
+    {
+        client.BaseAddress = new Uri($"https://generativelanguage.googleapis.com/");
+        client.DefaultRequestHeaders.Add("x-goog-api-key", options.GeminiApiKey);
+        client.Timeout = TimeSpan.FromSeconds(120);
+    });
+}
+else
+{
+    builder.Services.AddSingleton<GeminiTtsClient>(_ => null!);
+}
+
+// TTS router — selects provider based on voice ID prefix
+builder.Services.AddSingleton<TtsRouter>();
 
 // Slide renderer — selected by config
 builder.Services.AddSingleton<ISlideRenderer>(_ => options.SlideRenderer switch
@@ -97,7 +127,11 @@ if (options.TestMode)
 
 app.MapGet("/api/voices", (EchoDeckOptions opts) =>
 {
-    var voices = opts.ParseVoices().Select(v => new { id = v.Id, name = v.Name });
+    var voices = new List<object>();
+    if (!string.IsNullOrEmpty(opts.ElevenLabsApiKey))
+        voices.AddRange(opts.ParseVoices().Select(v => (object)new { id = v.Id, name = v.Name, provider = "elevenlabs" }));
+    if (!string.IsNullOrEmpty(opts.GeminiApiKey))
+        voices.AddRange(EchoDeck.Core.Services.GeminiTtsClient.KnownVoices.Select(name => (object)new { id = $"gemini:{name}", name, provider = "gemini" }));
     return Results.Ok(new { voices });
 });
 
@@ -120,11 +154,17 @@ app.MapPost("/api/generate", async (
     if (!File.Exists(pptxUploadPath))
         return Results.BadRequest(new { error = $"file_id '{body.FileId}' not found." });
 
-    var voices = opts.ParseVoices();
-    if (voices.Count == 0)
-        return Results.BadRequest(new { error = "No ElevenLabs voices configured." });
-
-    var resolvedVoiceId = body.VoiceId ?? voices[0].Id;
+    string? resolvedVoiceId = body.VoiceId;
+    if (resolvedVoiceId == null)
+    {
+        var elVoices = opts.ParseVoices();
+        if (elVoices.Count > 0)
+            resolvedVoiceId = elVoices[0].Id;
+        else if (!string.IsNullOrEmpty(opts.GeminiApiKey))
+            resolvedVoiceId = $"gemini:{EchoDeck.Core.Services.GeminiTtsClient.KnownVoices[0]}";
+        else
+            return Results.BadRequest(new { error = "No TTS voices configured. Set ELEVENLABS_VOICES or GEMINI_API_KEY." });
+    }
     if (body.Resolution != null) opts.DefaultResolution = body.Resolution;
 
     var job = jobStore.CreateJob();

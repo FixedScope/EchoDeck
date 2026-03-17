@@ -18,7 +18,7 @@ public static class GenerateVideoTool
         "Returns a job_id to poll with get_job_status.")]
     public static async Task<object> GenerateVideo(
         [Description("file_id returned by the /upload/pptx endpoint after uploading the .pptx file")] string file_id,
-        [Description("ElevenLabs voice ID. Use list_voices to see options. Defaults to first configured voice.")] string? voice_id,
+        [Description("Voice ID. Use list_voices to see options — includes ElevenLabs and Gemini voices. Gemini voices use the format 'gemini:VoiceName' (e.g. 'gemini:Kore'). Defaults to first configured voice.")] string? voice_id,
         [Description("Video resolution: '1920x1080' (default), '1280x720', or '3840x2160'")] string? resolution,
         [Description("Transition style: 'none' (default) or 'crossfade'")] string? transition,
         JobStore jobStore,
@@ -36,12 +36,18 @@ public static class GenerateVideoTool
         if (!File.Exists(pptxUploadPath))
             return new { error = $"file_id '{file_id}' not found. Call get_upload_slot and upload the file first." };
 
-        // Resolve voice
-        var voices = options.ParseVoices();
-        if (voices.Count == 0)
-            return new { error = "No ElevenLabs voices configured. Set ELEVENLABS_VOICES env var." };
-
-        var resolvedVoiceId = voice_id ?? voices[0].Id;
+        // Resolve voice — pick from whichever provider is configured
+        string? resolvedVoiceId = voice_id;
+        if (resolvedVoiceId == null)
+        {
+            var elVoices = options.ParseVoices();
+            if (elVoices.Count > 0)
+                resolvedVoiceId = elVoices[0].Id;
+            else if (!string.IsNullOrEmpty(options.GeminiApiKey))
+                resolvedVoiceId = $"gemini:{GeminiTtsClient.KnownVoices[0]}";
+            else
+                return new { error = "No TTS voices configured. Set ELEVENLABS_VOICES or GEMINI_API_KEY." };
+        }
 
         // Apply resolution override
         if (resolution != null) options.DefaultResolution = resolution;

@@ -3,7 +3,7 @@ using EchoDeck.Core.Services;
 
 namespace EchoDeck.Core.Pipeline;
 
-public class AudioGenerator(ElevenLabsClient elevenLabsClient, FFmpegService ffmpegService)
+public class AudioGenerator(TtsRouter ttsRouter, FFmpegService ffmpegService)
 {
     private const double DefaultSilenceDurationSeconds = 2.0;
 
@@ -34,7 +34,7 @@ public class AudioGenerator(ElevenLabsClient elevenLabsClient, FFmpegService ffm
                 }
                 else
                 {
-                    var audioBytes = await elevenLabsClient.TextToSpeechAsync(voiceId, slide.SpeakerNotes, ct);
+                    var audioBytes = await ttsRouter.TextToSpeechAsync(voiceId, slide.SpeakerNotes, ct);
                     var audioPath = Path.Combine(outputDir, $"slide_{slide.Index:D3}.mp3");
                     await File.WriteAllBytesAsync(audioPath, audioBytes, ct);
                     slide.AudioPath = audioPath;

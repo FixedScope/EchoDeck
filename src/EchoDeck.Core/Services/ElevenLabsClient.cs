@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace EchoDeck.Core.Services;
 
-public class ElevenLabsClient(HttpClient httpClient)
+public class ElevenLabsClient(HttpClient httpClient) : ITtsClient
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
 
