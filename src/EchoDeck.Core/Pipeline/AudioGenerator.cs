@@ -5,7 +5,7 @@ namespace EchoDeck.Core.Pipeline;
 
 public class AudioGenerator(TtsRouter ttsRouter, FFmpegService ffmpegService)
 {
-    private const double DefaultSilenceDurationSeconds = 2.0;
+    private const double DefaultSilenceDurationSeconds = 3.0;
 
     public async Task GenerateAsync(
         List<Slide> slides,

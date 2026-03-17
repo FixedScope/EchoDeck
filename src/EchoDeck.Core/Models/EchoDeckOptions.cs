@@ -7,7 +7,7 @@ public class EchoDeckOptions
     public string DataDir { get; set; } = "./data";
     public string SlideRenderer { get; set; } = "officeOnline"; // officeOnline, libreOffice, mock
     public string DefaultResolution { get; set; } = "1920x1080";
-    public string DefaultTransition { get; set; } = "none"; // none, crossfade
+    public string DefaultTransition { get; set; } = "crossfade"; // none, crossfade
     public int SlidePaddingMs { get; set; } = 500;
     public int MaxConcurrentTts { get; set; } = 3;
     public int JobRetentionHours { get; set; } = 24;

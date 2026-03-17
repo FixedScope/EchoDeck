@@ -51,9 +51,10 @@ public class GeminiTtsClient(HttpClient httpClient, FFmpegService ffmpegService)
 
                 using var response = await httpClient.SendAsync(request, ct);
 
-                if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests && attempt <= 3)
+                if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests && attempt <= 8)
                 {
-                    var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt) + Random.Shared.NextDouble());
+                    // Free-tier Gemini has strict RPM limits; back off aggressively
+                    var delay = TimeSpan.FromSeconds(Math.Min(60, Math.Pow(2, attempt)) + Random.Shared.NextDouble() * 5);
                     await Task.Delay(delay, ct);
                     continue;
                 }
@@ -73,7 +74,7 @@ public class GeminiTtsClient(HttpClient httpClient, FFmpegService ffmpegService)
                 var pcmBytes = Convert.FromBase64String(base64Pcm);
                 return await ffmpegService.ConvertPcmToMp3Async(pcmBytes, ct);
             }
-            catch (HttpRequestException) when (attempt <= 3)
+            catch (HttpRequestException) when (attempt <= 5)
             {
                 var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt) + Random.Shared.NextDouble());
                 await Task.Delay(delay, ct);
