@@ -1,10 +1,9 @@
 # Build stage
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-COPY EchoDeck.slnx .
 COPY src/EchoDeck.Core/EchoDeck.Core.csproj src/EchoDeck.Core/
 COPY src/EchoDeck.Mcp/EchoDeck.Mcp.csproj src/EchoDeck.Mcp/
-RUN dotnet restore
+RUN dotnet restore src/EchoDeck.Mcp/EchoDeck.Mcp.csproj
 COPY . .
 RUN dotnet publish src/EchoDeck.Mcp -c Release -o /app
 
