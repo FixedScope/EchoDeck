@@ -279,6 +279,31 @@ if (options.TestMode)
     app.UseStaticFiles(); // serves wwwroot/index.html
 }
 
+// Startup banner
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    var baseUrl = options.BaseUrl.TrimEnd('/');
+    var providers = new List<string>();
+    if (!string.IsNullOrEmpty(options.ElevenLabsApiKey)) providers.Add("ElevenLabs");
+    if (!string.IsNullOrEmpty(options.GeminiApiKey)) providers.Add("Gemini");
+
+    Console.WriteLine();
+    Console.WriteLine("╔══════════════════════════════════════════════════╗");
+    Console.WriteLine("║               EchoDeck is ready!                ║");
+    Console.WriteLine("╠══════════════════════════════════════════════════╣");
+    Console.WriteLine($"║  MCP Server : {baseUrl}/mcp");
+    Console.WriteLine($"║  Health     : {baseUrl}/health");
+    if (options.TestMode)
+        Console.WriteLine($"║  Web UI     : {baseUrl}");
+    Console.WriteLine($"║  Voices     : {(providers.Count > 0 ? string.Join(" + ", providers) : "none configured")}");
+    Console.WriteLine("╠══════════════════════════════════════════════════╣");
+    Console.WriteLine("║  Add to Claude Desktop:                          ║");
+    Console.WriteLine("║  Settings → Integrations → Custom Connectors    ║");
+    Console.WriteLine($"║  URL: {baseUrl}/mcp");
+    Console.WriteLine("╚══════════════════════════════════════════════════╝");
+    Console.WriteLine();
+});
+
 app.Run();
 
 record GenerateRequest(
