@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e1b4b"/>
+      <stop offset="100%" style="stop-color:#312e81"/>
+    </linearGradient>
+    <linearGradient id="slide" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#e0e7ff;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="wave" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#818cf8"/>
+      <stop offset="50%" style="stop-color:#a78bfa"/>
+      <stop offset="100%" style="stop-color:#c084fc"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="120" height="120" rx="24" fill="url(#bg)"/>
+
+  <!-- Slide / screen -->
+  <rect x="18" y="22" width="72" height="52" rx="5" fill="url(#slide)" opacity="0.95"/>
+
+  <!-- Slide content lines -->
+  <rect x="26" y="32" width="36" height="4" rx="2" fill="#4f46e5" opacity="0.5"/>
+  <rect x="26" y="42" width="56" height="3" rx="1.5" fill="#6366f1" opacity="0.3"/>
+  <rect x="26" y="49" width="46" height="3" rx="1.5" fill="#6366f1" opacity="0.3"/>
+  <rect x="26" y="56" width="52" height="3" rx="1.5" fill="#6366f1" opacity="0.3"/>
+
+  <!-- Play triangle overlaid on slide -->
+  <circle cx="77" cy="48" r="14" fill="#4f46e5" opacity="0.92"/>
+  <polygon points="73,42 73,54 85,48" fill="white"/>
+
+  <!-- Audio wave bars below -->
+  <rect x="18" y="82" width="6" height="10" rx="3" fill="url(#wave)" opacity="0.9"/>
+  <rect x="28" y="77" width="6" height="20" rx="3" fill="url(#wave)" opacity="0.9"/>
+  <rect x="38" y="80" width="6" height="14" rx="3" fill="url(#wave)" opacity="0.9"/>
+  <rect x="48" y="75" width="6" height="22" rx="3" fill="url(#wave)" opacity="0.9"/>
+  <rect x="58" y="79" width="6" height="15" rx="3" fill="url(#wave)" opacity="0.9"/>
+  <rect x="68" y="77" width="6" height="19" rx="3" fill="url(#wave)" opacity="0.9"/>
+  <rect x="78" y="82" width="6" height="10" rx="3" fill="url(#wave)" opacity="0.9"/>
+  <rect x="88" y="80" width="6" height="13" rx="3" fill="url(#wave)" opacity="0.9"/>
+</svg>
