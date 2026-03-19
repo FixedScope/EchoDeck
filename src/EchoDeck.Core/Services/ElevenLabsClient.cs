@@ -16,7 +16,7 @@ public class ElevenLabsClient(HttpClient httpClient) : ITtsClient
         {
             text,
             model_id = "eleven_multilingual_v2",
-            voice_settings = new { stability = 0.5, similarity_boost = 0.75 }
+            voice_settings = new { stability = 0.35, similarity_boost = 0.85, style_exaggeration = 0 }
         };
 
         int attempt = 0;
