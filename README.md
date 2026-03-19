@@ -20,18 +20,16 @@ Speaker notes on each slide become the narration. Slides with no notes get a 3-s
 
 ## Prerequisites
 
-At least one TTS provider is required:
-
-- **ElevenLabs** — [sign up at elevenlabs.io](https://elevenlabs.io) — high-quality, cloned voices. Requires an API key and at least one voice ID.
-- **Google Gemini** — [get a key at aistudio.google.com](https://aistudio.google.com) — 30 built-in voices, no extra setup beyond an API key. Requires a Tier 1 (paid) account for reasonable throughput.
+- **ElevenLabs** (required) — [sign up at elevenlabs.io](https://elevenlabs.io) — high-quality, cloned voices. Requires an API key and at least one voice ID.
+- **Google Gemini** (optional) — [get a key at aistudio.google.com](https://aistudio.google.com) — adds 30 built-in voices on top of ElevenLabs. Requires a Tier 1 (paid) account for reasonable throughput.
 
 ---
 
 ## Deploy on Railway
 
 1. Click the **Deploy on Railway** button above
-2. Set at least one of `ELEVENLABS_API_KEY` or `GEMINI_API_KEY`
-3. If using ElevenLabs, also set `ELEVENLABS_VOICES` (see format below)
+2. Set `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICES` (required)
+3. Optionally set `GEMINI_API_KEY` to also enable Gemini voices
 4. Add a Railway Volume mounted at `/data` (Service → Volumes → Add Volume)
 5. Deploy — Railway will build the Docker image and run the health check
 
@@ -41,9 +39,9 @@ At least one TTS provider is required:
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `ELEVENLABS_API_KEY` | One of these two | — | Your ElevenLabs API key |
-| `GEMINI_API_KEY` | One of these two | — | Your Google Gemini API key |
-| `ELEVENLABS_VOICES` | If using ElevenLabs | — | Comma-separated `Name:voice_id` pairs, e.g. `Sam:abc123,Rachel:def456` |
+| `ELEVENLABS_API_KEY` | Yes | — | Your ElevenLabs API key |
+| `ELEVENLABS_VOICES` | Yes | — | Comma-separated `Name:voice_id` pairs, e.g. `Sam:abc123,Rachel:def456` |
+| `GEMINI_API_KEY` | No | — | Your Google Gemini API key — adds 30 built-in voices |
 | `MCP_AUTH_KEY` | Auto-generated | — | Secret key for MCP access (auto-set by Railway template) |
 | `TEST_MODE` | No | `false` | Set to `true` to enable the web UI at the root URL |
 | `DATA_DIR` | No | `/data` | Directory for job storage — mount a Railway Volume here |
