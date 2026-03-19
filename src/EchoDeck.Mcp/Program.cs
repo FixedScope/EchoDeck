@@ -289,10 +289,10 @@ app.Lifetime.ApplicationStarted.Register(() =>
 
     Console.WriteLine();
     Console.WriteLine("╔══════════════════════════════════════════════════╗");
-    Console.WriteLine("║               EchoDeck is ready!                ║");
+    Console.WriteLine("║               EchoDeck is ready!                 ║");
+    Console.WriteLine("║ WARNING: THERE IS NO AUTHENTICATION ON THIS MCP! ║");
     Console.WriteLine("╠══════════════════════════════════════════════════╣");
-    Console.WriteLine($"║  MCP Server : {baseUrl}/mcp");
-    Console.WriteLine($"║  Health     : {baseUrl}/health");
+    Console.WriteLine($"║  MCP Server : {baseUrl}/mcp");    
     if (options.TestMode)
         Console.WriteLine($"║  Web UI     : {baseUrl}");
     Console.WriteLine($"║  Voices     : {(providers.Count > 0 ? string.Join(" + ", providers) : "none configured")}");
@@ -300,6 +300,7 @@ app.Lifetime.ApplicationStarted.Register(() =>
     Console.WriteLine("║  Add to Claude Desktop:                          ║");
     Console.WriteLine("║  Settings → Integrations → Custom Connectors    ║");
     Console.WriteLine($"║  URL: {baseUrl}/mcp");
+    Console.WriteLine("║ WARNING: THERE IS NO AUTHENTICATION ON THIS MCP! ║");    
     Console.WriteLine("╚══════════════════════════════════════════════════╝");
     Console.WriteLine();
 });
