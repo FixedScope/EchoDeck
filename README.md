@@ -2,7 +2,7 @@
 
 Convert PowerPoint presentations into narrated MP4 videos using ElevenLabs or Google Gemini TTS — powered by an MCP server you can connect directly to Claude.
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template/PLACEHOLDER)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/jgi04x?referralCode=7Y_8ni&utm_medium=integration&utm_source=template&utm_campaign=generic)
 
 ---
 
